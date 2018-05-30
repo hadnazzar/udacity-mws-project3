@@ -11,7 +11,7 @@ window.addEventListener('beforeinstallprompt', function (e) {
   // Stash the event so it can be triggered later.
   deferredPrompt = e;
 
-  return false; Î
+  return false;
 });
 
 /**
@@ -195,6 +195,34 @@ createRestaurantHTML = (restaurant) => {
   more.innerHTML = 'View Details';
   more.href = DBHelper.urlForRestaurant(restaurant);
   li.append(more)
+
+  const favorite = document.createElement('a');
+  let url = "";
+  if(restaurant.is_favorite){
+    favorite.innerHTML = 'Unfavorite';
+    url = `http://localhost:1337/restaurants/${restaurant.id}/?is_favorite=false`
+    favorite.onclick = function () {
+      fetch(url, {
+        method: 'PUT', // *GET, POST, PUT, DELETE, etc.
+      })
+      .then(response => response.json()) // parses response to JSON
+      this.style.backgroundColor = "orange";
+    };
+  }
+  else{
+    favorite.innerHTML = 'Favorite';    
+    url = `http://localhost:1337/restaurants/${restaurant.id}/?is_favorite=true`
+    favorite.onclick = function () {
+      fetch(url, {
+        method: 'PUT', // *GET, POST, PUT, DELETE, etc.
+      })
+      .then(response => response.json()) // parses response to JSON
+      this.style.backgroundColor = "red";
+    };
+  }
+  favorite.classList = "favoriteBtn"
+  
+  li.append(favorite)
 
   return li
 }
