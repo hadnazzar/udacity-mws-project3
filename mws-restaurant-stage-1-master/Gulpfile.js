@@ -3,6 +3,8 @@ var responsive = require('gulp-responsive');
 var minify = require('gulp-minify');
 let cleanCSS = require('gulp-clean-css');
 let watch = require('gulp-watch');
+var concat = require('gulp-concat');
+
 
 
 
@@ -10,6 +12,7 @@ gulp.task('default', function () {
   gulp.start('minify-images')
   gulp.start('compressJs')
   gulp.start('minify-css')
+  gulp.start('bundle-js')
 });
 
 gulp.task('minify-images', function () {
@@ -56,6 +59,12 @@ gulp.task('minify-css', () => {
   return gulp.src('css/*.css')
     .pipe(cleanCSS({ compatibility: 'ie8' }))
     .pipe(gulp.dest('dist'));
+});
+
+gulp.task('bundle-js', function() {
+  return gulp.src('js/**/*.js')
+    .pipe(concat('bundle.js'))
+    .pipe(gulp.dest('./dist/'));
 });
 
 

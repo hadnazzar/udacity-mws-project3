@@ -17,13 +17,15 @@
   },
   "homepage": "https://github.com/hadnazzar/udacity-restaurant#readme",
   "dependencies": {
-    "idb": "^2.1.1"
+    "idb": "^2.1.2"
   },
   "devDependencies": {
-    "gulp": "^3.9.1",
-    "gulp-clean-css": "^3.9.3",
+    "gulp": "latest",
+    "gulp-clean-css": "^3.9.4",
+    "gulp-concat": "latest",
     "gulp-minify": "^2.1.0",
     "gulp-responsive": "^2.10.0",
+    "gulp-util": "latest",
     "gulp-watch": "^5.0.0"
   }
 }
