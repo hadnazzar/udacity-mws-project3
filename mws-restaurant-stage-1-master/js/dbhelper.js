@@ -7,9 +7,9 @@ class DBHelper {
    * Database URL.
    * Change this to restaurants.json file location on your server.
    */
-  static get DATABASE_URL() {
+  static DATABASE_URL(path) {
     const port = 1337 // Change this to your server port
-    return `http://localhost:${port}/restaurants`;
+    return `http://localhost:${port}/${path}`;
   }
 
 
@@ -72,7 +72,7 @@ class DBHelper {
   request.onerror = function (event) {
     // Handle errors!
     let xhr = new XMLHttpRequest();
-    xhr.open('GET', DBHelper.DATABASE_URL);
+    xhr.open('GET', DBHelper.DATABASE_URL("restaurants"));
     xhr.onload = () => {
       if (xhr.status === 200) { // Got a success response from server!
         const json = JSON.parse(xhr.responseText);
@@ -95,13 +95,61 @@ class DBHelper {
       }
       else {
         let xhr = new XMLHttpRequest();
-        xhr.open('GET', DBHelper.DATABASE_URL);
+        xhr.open('GET', DBHelper.DATABASE_URL("restaurants"));
         xhr.onload = () => {
           if (xhr.status === 200) { // Got a success response from server!
             const json = JSON.parse(xhr.responseText);
             // const restaurants = json.restaurants;
             const restaurants = json;
             callback(null, restaurants);
+          } else { // Oops!. Got an error from server.
+            const error = (`Request failed. Returned status of ${xhr.status}`);
+            callback(error, null);
+          }
+        };
+        xhr.send();
+      }
+    };
+  };
+}
+
+
+static fetchReviews(callback) {
+
+  //IndexedDB
+  var request = window.indexedDB.open("indexedDB", 1);
+
+  request.onerror = function (event) {
+    // Handle errors!
+    let xhr = new XMLHttpRequest();
+    xhr.open('GET', DBHelper.DATABASE_URL("reviews"));
+    xhr.onload = () => {
+      if (xhr.status === 200) { // Got a success response from server!
+        const json = JSON.parse(xhr.responseText);
+        const reviews = json;
+        callback(null, reviews);
+      } else { // Oops!. Got an error from server.
+        const error = (`Request failed. Returned status of ${xhr.status}`);
+        callback(error, null);
+      }
+    };
+    xhr.send();
+  };
+  request.onsuccess = function (event) {
+    // Do something with the request.result!
+    db.transaction("restaurants").objectStore("reviews").getAll().onsuccess = function (event) {
+      var reviews = event.target.result;
+      if (reviews.length > 0) {
+        callback(null, reviews);
+      }
+      else {
+        let xhr = new XMLHttpRequest();
+        xhr.open('GET', DBHelper.DATABASE_URL("reviews"));
+        xhr.onload = () => {
+          if (xhr.status === 200) { // Got a success response from server!
+            const json = JSON.parse(xhr.responseText);
+            const reviews = json;
+            callback(null, reviews);
           } else { // Oops!. Got an error from server.
             const error = (`Request failed. Returned status of ${xhr.status}`);
             callback(error, null);
@@ -272,11 +320,11 @@ request.onupgradeneeded = function (event) {
   var db = event.target.result;
 
   // Create an objectStore for this database
-  var objectStore = db.createObjectStore("restaurants", { keyPath: "id" });
+  var objectStoreRestaurants = db.createObjectStore("restaurants", { keyPath: "id" });
 
   // Use transaction oncomplete to make sure the objectStore creation is 
   // finished before adding data into it.
-  objectStore.transaction.oncomplete = function (event) {
+  objectStoreRestaurants.transaction.oncomplete = function (event) {
     // Store values in the newly created objectStore.
     DBHelper.fetchRestaurants((error, restaurants) => {
       if (error) {
@@ -289,4 +337,20 @@ request.onupgradeneeded = function (event) {
       }
     });
   };
+
+  var objectStoreReviews = db.createObjectStore("reviews", { keyPath: "id" });
+  
+  // objectStoreReviews.transaction.oncomplete = function (event) {
+  //   // Store values in the newly created objectStore.
+  //   DBHelper.fetchReviews((error, reviews) => {
+  //     if (error) {
+  //       callback(error, null);
+  //     } else {
+  //       var reviewObjectStore = db.transaction("reviews", "readwrite").objectStore("reviews");
+  //       reviews.forEach(function (reviews) {
+  //         reviewObjectStore.add(reviews);
+  //       });
+  //     }
+  //   });
+  // };
 };
