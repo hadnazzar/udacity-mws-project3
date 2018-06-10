@@ -74,6 +74,7 @@ gulp.task('watch', function () {
     // console.log('File ' + path + ' was changed');
     console.log(JSON.stringify(path))
     gulp.start('compressJs')
+    gulp.start('bundle-js')
   });
   var watcherCss = gulp.watch('css/**/*.css');
   watcherCss.on('change', function (path, stats) {

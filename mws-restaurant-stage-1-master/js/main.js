@@ -116,7 +116,6 @@ showMapMarkers = () => {
   }
   script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyAC3mlvPLWWMeQz1tnYZjHjZbtFb5ksBMU&libraries=places';
   head.appendChild(script);
-  
 }
 
 /**
@@ -197,31 +196,13 @@ createRestaurantHTML = (restaurant) => {
   li.append(more)
 
   const favorite = document.createElement('a');
-  let url = "";
-  if(restaurant.is_favorite){
-    favorite.innerHTML = 'Unfavorite';
-    url = `http://localhost:1337/restaurants/${restaurant.id}/?is_favorite=false`
-    favorite.onclick = function () {
-      fetch(url, {
-        method: 'PUT', // *GET, POST, PUT, DELETE, etc.
-      })
-      .then(response => response.json()) // parses response to JSON
-      this.style.backgroundColor = "orange";
-    };
-  }
-  else{
-    favorite.innerHTML = 'Favorite';    
-    url = `http://localhost:1337/restaurants/${restaurant.id}/?is_favorite=true`
-    favorite.onclick = function () {
-      fetch(url, {
-        method: 'PUT', // *GET, POST, PUT, DELETE, etc.
-      })
-      .then(response => response.json()) // parses response to JSON
-      this.style.backgroundColor = "red";
-    };
+  favorite.onclick = () => {
+    DBHelper.changeRestaurantFavoriteStatus(restaurant)
   }
   favorite.classList = "favoriteBtn"
-  
+  favorite.id = `favBtn-${restaurant.id}`
+  favorite.innerHTML = restaurant.is_favorite ? "Unfavorite" : "Favorite"
+  favorite.style.backgroundColor = restaurant.is_favorite ? "red" : "orange"
   li.append(favorite)
 
   return li

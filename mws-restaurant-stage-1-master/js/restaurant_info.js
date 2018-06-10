@@ -10,14 +10,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
     if (error) { // Got an error!
       console.error(error);
     } else {
-      self.map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 16,
-        center: restaurant.latlng,
-        scrollwheel: false
-      });
+      document.getElementById("map-container").style.display = "none"
     }
     fillBreadcrumb();
-    DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
   });
 })
 
@@ -41,7 +36,7 @@ fetchRestaurantFromURL = (callback) => {
         return;
       }
       fillRestaurantHTML();
-      callback(null, restaurant)
+      callback(null, restaurant) 
     });
   }
 }
@@ -157,7 +152,27 @@ fillBreadcrumb = (restaurant = self.restaurant) => {
   const breadcrumb = document.getElementById('breadcrumb');
   const li = document.createElement('li');
   li.innerHTML = restaurant.name;
+  const btn = document.createElement('button');
+  btn.style.float = "right"
+  btn.innerHTML = "Show Map";
+  btn.id = "show-inner-map"
+  btn.onclick = () => {
+    try {
+      document.getElementById("map-container").style.display = "block"
+      self.map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 16,
+        center: restaurant.latlng,
+        scrollwheel: false
+      });
+      DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
+      document.getElementById("show-inner-map").style.display = "none"
+    } catch (error) {
+      console.log("Error: inner map could not loaded")
+    }
+  }
   breadcrumb.appendChild(li);
+  breadcrumb.appendChild(btn);
+  
 }
 
 /**
@@ -175,11 +190,6 @@ getParameterByName = (name, url) => {
     return '';
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
-
-
-document.getElementById("submitBtn").addEventListener("click",function(){
-  sendRestaurantReview();
-})
 
 sendRestaurantReview = (e) => {
   const userName = document.getElementById("review-usernameinput").value;

@@ -41,7 +41,7 @@ fetchRestaurantFromURL = (callback) => {
         return;
       }
       fillRestaurantHTML();
-      callback(null, restaurant)
+      callback(null, restaurant) 
     });
   }
 }
@@ -96,23 +96,34 @@ fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours) => 
 /**
  * Create all reviews HTML and add them to the webpage.
  */
-fillReviewsHTML = (reviews = self.restaurant.reviews) => {
+fillReviewsHTML = (id = self.restaurant.id) => {
   const container = document.getElementById('reviews-container');
   const title = document.createElement('h3');
   title.innerHTML = 'Reviews';
   container.appendChild(title);
 
-  if (!reviews) {
+  if (!id) {
     const noReviews = document.createElement('p');
     noReviews.innerHTML = 'No reviews yet!';
     container.appendChild(noReviews);
     return;
   }
-  const ul = document.getElementById('reviews-list');
-  reviews.forEach(review => {
-    ul.appendChild(createReviewHTML(review));
-  });
-  container.appendChild(ul);
+
+  let reviews = []
+
+  fetch(`http://localhost:1337/reviews/?restaurant_id=${id}`)
+  .then(res => res.json())
+  .catch(error => console.error(error))
+  .then(reviews=> {
+    console.log(reviews)
+    const ul = document.getElementById('reviews-list');
+    reviews.forEach(review => {
+      ul.appendChild(createReviewHTML(review));
+    });
+    container.appendChild(ul);
+  })
+
+
 }
 
 /**
@@ -125,7 +136,7 @@ createReviewHTML = (review) => {
   li.appendChild(name);
 
   const date = document.createElement('p');
-  date.innerHTML = review.date;
+  date.innerHTML = new Date(review.createdAt).toLocaleDateString();
   li.appendChild(date);
 
   const rating = document.createElement('p');
@@ -163,4 +174,25 @@ getParameterByName = (name, url) => {
   if (!results[2])
     return '';
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
+sendRestaurantReview = (e) => {
+  const userName = document.getElementById("review-usernameinput").value;
+  const rating = document.getElementById("review-rating").value;
+  const comments = document.getElementById("review-comment").value
+  const id = getParameterByName('id');
+  fetch('http://localhost:1337/reviews/', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body:JSON.stringify({restaurant_id: id, name: userName, rating: rating, comments:comments})
+    })
+  .then(res=>res.json())
+  .catch(error => console.error(error))
+  .then(res => {
+    console.log(res)
+    fillReviewsHTML()
+  });
 }

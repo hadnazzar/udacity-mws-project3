@@ -12,9 +12,39 @@ class DBHelper {
     return `http://localhost:${port}/restaurants`;
   }
 
+
+  static changeRestaurantData(){
+    var title = "Walk dog";
+
+    // Open up a transaction as usual
+    var objectStore = db.transaction(["restaurants"], "readwrite").objectStore("restaurants");
+
+    // Get the to-do list object that has this title as it's title
+    var objectStoreTitleRequest = objectStore.get(1);
+
+    objectStoreTitleRequest.onsuccess = function() {
+      // Grab the data object returned as the result
+      var data = objectStoreTitleRequest.result;
+
+      // Update the notified value in the object to "yes"
+      data.notified = "yes";
+
+      // Create another request that inserts the item back into the database
+      var updateTitleRequest = objectStore.put(data);
+
+      // Log the transaction that originated this request
+      console.log("The transaction that originated this request is " + updateTitleRequest.transaction);
+
+      // When this new request succeeds, run the displayData() function again to update the display
+      updateTitleRequest.onsuccess = function() {
+        displayData();
+      };
+    };
+  }
+
   /**
    * Fetch all restaurants.
-   */
+   */ 
   static fetchRestaurants(callback) {
 
     //IndexedDB
@@ -23,7 +53,7 @@ class DBHelper {
     request.onerror = function (event) {
       // Handle errors!
       let xhr = new XMLHttpRequest();
-      xhr.open('GET', DBHelper.DATABASE_URL);
+      xhr.open('GET', DBHelper.DATABASE_URL);  
       xhr.onload = () => {
         if (xhr.status === 200) { // Got a success response from server!
           const json = JSON.parse(xhr.responseText);
@@ -62,8 +92,6 @@ class DBHelper {
         }
       };
     };
-
-
   }
 
   /**
@@ -202,7 +230,6 @@ class DBHelper {
     );
     return marker;
   }
-
 }
 
 

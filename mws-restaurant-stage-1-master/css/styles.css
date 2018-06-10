@@ -87,7 +87,7 @@ nav h2 a {
     background-color: #eee;
     font-size: 17px;
     margin: 0;
-    width: 100%;
+    width: 90%;
 }
 
 /* Display list items side by side */
@@ -201,6 +201,10 @@ nav h2 a {
   text-align: center;
   text-decoration: none;
   text-transform: uppercase;
+}
+
+#restaurants-list li .favoriteBtn{
+  margin-left: 20px
 }
 
 /* ====================== Restaurant Details ====================== */
