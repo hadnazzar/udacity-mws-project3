@@ -115,8 +115,6 @@ class DBHelper {
 
 
 static fetchReviews(callback) {
-
-  //IndexedDB
   var request = window.indexedDB.open("indexedDB", 1);
 
   request.onerror = function (event) {
@@ -137,7 +135,7 @@ static fetchReviews(callback) {
   };
   request.onsuccess = function (event) {
     // Do something with the request.result!
-    db.transaction("restaurants").objectStore("reviews").getAll().onsuccess = function (event) {
+    db.transaction("reviews").objectStore("reviews").getAll().onsuccess = function (event) {
       var reviews = event.target.result;
       if (reviews.length > 0) {
         callback(null, reviews);
@@ -148,6 +146,7 @@ static fetchReviews(callback) {
         xhr.onload = () => {
           if (xhr.status === 200) { // Got a success response from server!
             const json = JSON.parse(xhr.responseText);
+            // const restaurants = json.reviews;
             const reviews = json;
             callback(null, reviews);
           } else { // Oops!. Got an error from server.
@@ -316,15 +315,20 @@ request.onsuccess = function (event) {
 
 // This event is only implemented in recent browsers   
 request.onupgradeneeded = function (event) {
+  
   // Save the IDBDatabase interface 
   var db = event.target.result;
 
   // Create an objectStore for this database
-  var objectStoreRestaurants = db.createObjectStore("restaurants", { keyPath: "id" });
-
+  var objectStoreRestaurants = db.createObjectStore("restaurants", {
+    keyPath: "id", autoIncrement : true
+  });
+  var objectStoreReviews = db.createObjectStore("reviews", {
+    keyPath: "id", autoIncrement : true
+  });
   // Use transaction oncomplete to make sure the objectStore creation is 
   // finished before adding data into it.
-  objectStoreRestaurants.transaction.oncomplete = function (event) {
+  objectStoreRestaurants.transaction.addEventListener('complete', function (event) {
     // Store values in the newly created objectStore.
     DBHelper.fetchRestaurants((error, restaurants) => {
       if (error) {
@@ -336,21 +340,20 @@ request.onupgradeneeded = function (event) {
         });
       }
     });
-  };
+  });
 
-  var objectStoreReviews = db.createObjectStore("reviews", { keyPath: "id" });
   
-  // objectStoreReviews.transaction.oncomplete = function (event) {
-  //   // Store values in the newly created objectStore.
-  //   DBHelper.fetchReviews((error, reviews) => {
-  //     if (error) {
-  //       callback(error, null);
-  //     } else {
-  //       var reviewObjectStore = db.transaction("reviews", "readwrite").objectStore("reviews");
-  //       reviews.forEach(function (reviews) {
-  //         reviewObjectStore.add(reviews);
-  //       });
-  //     }
-  //   });
-  // };
+  objectStoreReviews.transaction.addEventListener('complete', function (event) {
+    // Store values in the newly created objectStore.
+    DBHelper.fetchReviews((error, reviews) => {
+      if (error) {
+        callback(error, null);
+      } else {
+        var reviewObjectStore = db.transaction("reviews", "readwrite").objectStore("reviews");
+        reviews.forEach(function (reviews) {
+          reviewObjectStore.add(reviews);
+        });
+      }
+    });
+  });
 };
