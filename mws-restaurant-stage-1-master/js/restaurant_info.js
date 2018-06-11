@@ -36,7 +36,7 @@ fetchRestaurantFromURL = (callback) => {
         return;
       }
       fillRestaurantHTML();
-      callback(null, restaurant) 
+      callback(null, restaurant)
     });
   }
 }
@@ -104,21 +104,27 @@ fillReviewsHTML = (id = self.restaurant.id) => {
     return;
   }
 
-  let reviews = []
 
-  fetch(`http://localhost:1337/reviews/?restaurant_id=${id}`)
-  .then(res => res.json())
-  .catch(error => console.error(error))
-  .then(reviews=> {
-    console.log(reviews)
-    const ul = document.getElementById('reviews-list');
-    reviews.forEach(review => {
-      ul.appendChild(createReviewHTML(review));
-    });
-    container.appendChild(ul);
-  })
+  DBHelper.fetchReviews((error, reviews) => {
+    if (error) {
+      callback(error, null);
+    } else {
+      resetReviews()
+      const ul = document.getElementById('reviews-list');
+      reviews.forEach(review => {
+        if (review.restaurant_id == id) {
+          ul.appendChild(createReviewHTML(review));
+        }
+      });
+      container.appendChild(ul);
+    }
+  });
+}
 
-
+resetReviews = () => {
+  // Remove all restaurants
+  const ul = document.getElementById('reviews-list');
+  ul.innerHTML = '';
 }
 
 /**
@@ -172,7 +178,7 @@ fillBreadcrumb = (restaurant = self.restaurant) => {
   }
   breadcrumb.appendChild(li);
   breadcrumb.appendChild(btn);
-  
+
 }
 
 /**
@@ -192,22 +198,11 @@ getParameterByName = (name, url) => {
 }
 
 sendRestaurantReview = (e) => {
-  const userName = document.getElementById("review-usernameinput").value;
+  let userName = document.getElementById("review-usernameinput").value;
   const rating = document.getElementById("review-rating").value;
-  const comments = document.getElementById("review-comment").value
+  let comments = document.getElementById("review-comment").value
   const id = getParameterByName('id');
-  fetch('http://localhost:1337/reviews/', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json, text/plain, */*',
-        'Content-Type': 'application/json'
-      },
-      body:JSON.stringify({restaurant_id: id, name: userName, rating: rating, comments:comments})
-    })
-  .then(res=>res.json())
-  .catch(error => console.error(error))
-  .then(res => {
-    console.log(res)
-    fillReviewsHTML()
-  });
+  DBHelper.addReviewToIndexedDB({ restaurant_id: id, name: userName, rating: rating, comments: comments })
+  document.getElementById("review-usernameinput").value = ""
+  document.getElementById("review-comment").value = ""
 }
