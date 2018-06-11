@@ -62,33 +62,32 @@ class DBHelper {
   }
 
 
-  static addReviewToIndexedDB(review) {
+  static changeReviewSuccessStatus(review) {
 
-    // open a read/write db transaction, ready for adding the data
-    var transaction = db.transaction(["reviews"], "readwrite");
+    // Open up a transaction as usual
+    var objectStore = db.transaction("reviews", "readwrite").objectStore("reviews");
 
-    // report on the success of the transaction completing, when everything is done
-    transaction.oncomplete = function (event) {
-      console.log("complete")
+    // Get the to-do list object that has this title as it's title
+    var objectStoreTitleRequest = objectStore.get(review.id);
+
+    objectStoreTitleRequest.onsuccess = function () {
+      // Grab the data object returned as the result
+      var data = objectStoreTitleRequest.result;
+      data.success = true;
+      // Create another request that inserts the item back into the database
+      var updateTitleRequest = objectStore.put(data);
+      // Log the transaction that originated this request
+      console.log("The transaction that originated this request is " + updateTitleRequest.transaction);
+      // When this new request succeeds, run the displayData() function again to update the display
+      updateTitleRequest.onsuccess = function () {
+      };
     };
-
-    transaction.onerror = function (event) {
-      console.log("error")
-    };
-
-    // create an object store on the transaction
-    var objectStore = transaction.objectStore("reviews");
-
-    // Make a request to add our newItem object to the object store
-    var objectStoreRequest = objectStore.add(review);
-
-    objectStoreRequest.onsuccess = function (event) {
-      // report the success of our request
-      console.log("success")
-      fillReviewsHTML()
-    };
+  }
 
 
+
+
+  static addReviewToDB(review) {
     fetch('http://localhost:1337/reviews/', {
       method: 'POST',
       headers: {
@@ -103,11 +102,42 @@ class DBHelper {
       })
       .then(res => {
         console.log(res)
+        // open a read/write db transaction, ready for adding the data
+        var transaction = db.transaction(["reviews"], "readwrite");
+
+        // report on the success of the transaction completing, when everything is done
+        transaction.oncomplete = function (event) {
+          console.log("complete")
+        };
+
+        transaction.onerror = function (event) {
+          console.log("error")
+        };
+
+        // create an object store on the transaction
+        var objectStore = transaction.objectStore("reviews");
+
+        // Make a request to add our newItem object to the object store
+        let valueForIndexedDB = res ? res : { ...review, success: false }
+        var objectStoreRequest = objectStore.add(valueForIndexedDB);
+
+        objectStoreRequest.onsuccess = function (event) {
+          // report the success of our request
+          console.log("success")
+          fillReviewsHTML()
+
+          if (!res) {
+            window.addEventListener('online', function () {
+              DBHelper.postReview(review)
+                .then(res => {
+                  console.log(res)
+                  DBHelper.changeReviewSuccessStatus(res)
+                })
+              window.removeEventListener('online')
+            });
+          }
+        };
       });
-
-
-
-
   }
 
   /**
@@ -338,6 +368,21 @@ class DBHelper {
     }
     );
     return marker;
+  }
+
+  static postReview(review) {
+    return fetch('http://localhost:1337/reviews/', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(review)
+    })
+      .then(res => res.json())
+      .catch(error => {
+        console.error(error)
+      })
   }
 }
 

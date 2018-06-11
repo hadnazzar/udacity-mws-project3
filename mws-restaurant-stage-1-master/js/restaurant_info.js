@@ -202,7 +202,7 @@ sendRestaurantReview = (e) => {
   const rating = document.getElementById("review-rating").value;
   let comments = document.getElementById("review-comment").value
   const id = getParameterByName('id');
-  DBHelper.addReviewToIndexedDB({ restaurant_id: id, name: userName, rating: rating, comments: comments })
+  DBHelper.addReviewToDB({ restaurant_id: id, name: userName, rating: rating, comments: comments })
   document.getElementById("review-usernameinput").value = ""
   document.getElementById("review-comment").value = ""
 }

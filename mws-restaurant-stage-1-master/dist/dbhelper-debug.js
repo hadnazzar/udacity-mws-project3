@@ -7,27 +7,46 @@ class DBHelper {
    * Database URL.
    * Change this to restaurants.json file location on your server.
    */
-  static get DATABASE_URL() {
+  static DATABASE_URL(path) {
     const port = 1337 // Change this to your server port
-    return `http://localhost:${port}/restaurants`;
+    return `http://localhost:${port}/${path}`;
   }
 
 
-  static changeRestaurantData(){
-    var title = "Walk dog";
+  static changeRestaurantFavoriteStatus(restaurant) {
 
     // Open up a transaction as usual
     var objectStore = db.transaction(["restaurants"], "readwrite").objectStore("restaurants");
 
     // Get the to-do list object that has this title as it's title
-    var objectStoreTitleRequest = objectStore.get(1);
+    var objectStoreTitleRequest = objectStore.get(restaurant.id);
 
-    objectStoreTitleRequest.onsuccess = function() {
+    objectStoreTitleRequest.onsuccess = function () {
       // Grab the data object returned as the result
       var data = objectStoreTitleRequest.result;
 
-      // Update the notified value in the object to "yes"
-      data.notified = "yes";
+      if (data.is_favorite) {
+        data.is_favorite = false;
+        let url = `http://localhost:1337/restaurants/${restaurant.id}/?is_favorite=false`
+        let button = document.getElementById(`favBtn-${restaurant.id}`)
+        button.innerHTML = 'Unfavorite';
+        fetch(url, {
+          method: 'PUT', // *GET, POST, PUT, DELETE, etc.
+        })
+          .then(response => response.json()) // parses response to JSON
+        button.backgroundColor = "orange";
+      }
+      else {
+        data.is_favorite = true;
+        let url = `http://localhost:1337/restaurants/${restaurant.id}/?is_favorite=false`
+        let button = document.getElementById(`favBtn-${restaurant.id}`)
+        button.innerHTML = 'Favorite';
+        fetch(url, {
+          method: 'PUT', // *GET, POST, PUT, DELETE, etc.
+        })
+          .then(response => response.json()) // parses response to JSON
+        button.backgroundColor = "red";
+      }
 
       // Create another request that inserts the item back into the database
       var updateTitleRequest = objectStore.put(data);
@@ -36,24 +55,100 @@ class DBHelper {
       console.log("The transaction that originated this request is " + updateTitleRequest.transaction);
 
       // When this new request succeeds, run the displayData() function again to update the display
-      updateTitleRequest.onsuccess = function() {
-        displayData();
+      updateTitleRequest.onsuccess = function () {
+        updateRestaurants()
       };
     };
   }
 
+
+  static changeReviewSuccessStatus(review) {
+
+    // Open up a transaction as usual
+    var objectStore = db.transaction("reviews", "readwrite").objectStore("reviews");
+
+    // Get the to-do list object that has this title as it's title
+    var objectStoreTitleRequest = objectStore.get(review.id);
+
+    objectStoreTitleRequest.onsuccess = function () {
+      // Grab the data object returned as the result
+      var data = objectStoreTitleRequest.result;
+      data.success = true;
+      // Create another request that inserts the item back into the database
+      var updateTitleRequest = objectStore.put(data);
+      // Log the transaction that originated this request
+      console.log("The transaction that originated this request is " + updateTitleRequest.transaction);
+      // When this new request succeeds, run the displayData() function again to update the display
+      updateTitleRequest.onsuccess = function () {
+      };
+    };
+  }
+
+
+
+
+  static addReviewToDB(review) {
+    fetch('http://localhost:1337/reviews/', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(review)
+    })
+      .then(res => res.json())
+      .catch(error => {
+        console.error(error)
+      })
+      .then(res => {
+        console.log(res)
+        // open a read/write db transaction, ready for adding the data
+        var transaction = db.transaction(["reviews"], "readwrite");
+
+        // report on the success of the transaction completing, when everything is done
+        transaction.oncomplete = function (event) {
+          console.log("complete")
+        };
+
+        transaction.onerror = function (event) {
+          console.log("error")
+        };
+
+        // create an object store on the transaction
+        var objectStore = transaction.objectStore("reviews");
+
+        // Make a request to add our newItem object to the object store
+        let valueForIndexedDB = res ? res : { ...review, success: false }
+        var objectStoreRequest = objectStore.add(valueForIndexedDB);
+
+        objectStoreRequest.onsuccess = function (event) {
+          // report the success of our request
+          console.log("success")
+          fillReviewsHTML()
+
+          if (!res) {
+            window.addEventListener('online', function () {
+              DBHelper.postReview(review)
+                .then(res => {
+                  console.log(res)
+                  DBHelper.changeReviewSuccessStatus(res)
+                  window.removeEventListener('online')
+                })
+            });
+          }
+        };
+      });
+  }
+
   /**
    * Fetch all restaurants.
-   */ 
+   */
   static fetchRestaurants(callback) {
-
-    //IndexedDB
     var request = window.indexedDB.open("indexedDB", 1);
-
     request.onerror = function (event) {
       // Handle errors!
       let xhr = new XMLHttpRequest();
-      xhr.open('GET', DBHelper.DATABASE_URL);  
+      xhr.open('GET', DBHelper.DATABASE_URL("restaurants"));
       xhr.onload = () => {
         if (xhr.status === 200) { // Got a success response from server!
           const json = JSON.parse(xhr.responseText);
@@ -76,13 +171,57 @@ class DBHelper {
         }
         else {
           let xhr = new XMLHttpRequest();
-          xhr.open('GET', DBHelper.DATABASE_URL);
+          xhr.open('GET', DBHelper.DATABASE_URL("restaurants"));
           xhr.onload = () => {
             if (xhr.status === 200) { // Got a success response from server!
               const json = JSON.parse(xhr.responseText);
               // const restaurants = json.restaurants;
               const restaurants = json;
               callback(null, restaurants);
+            } else { // Oops!. Got an error from server.
+              const error = (`Request failed. Returned status of ${xhr.status}`);
+              callback(error, null);
+            }
+          };
+          xhr.send();
+        }
+      };
+    };
+  }
+
+
+  static fetchReviews(callback) {
+    var request = window.indexedDB.open("indexedDB", 1);
+    request.onerror = function (event) {
+      let xhr = new XMLHttpRequest();
+      xhr.open('GET', DBHelper.DATABASE_URL("reviews"));
+      xhr.onload = () => {
+        if (xhr.status === 200) { // Got a success response from server!
+          const json = JSON.parse(xhr.responseText);
+          const reviews = json;
+          callback(null, reviews);
+        } else { // Oops!. Got an error from server.
+          const error = (`Request failed. Returned status of ${xhr.status}`);
+          callback(error, null);
+        }
+      };
+      xhr.send();
+    };
+    request.onsuccess = function (event) {
+      // Do something with the request.result!
+      db.transaction("reviews").objectStore("reviews").getAll().onsuccess = function (event) {
+        var reviews = event.target.result;
+        if (reviews.length > 0) {
+          callback(null, reviews);
+        }
+        else {
+          let xhr = new XMLHttpRequest();
+          xhr.open('GET', DBHelper.DATABASE_URL("reviews"));
+          xhr.onload = () => {
+            if (xhr.status === 200) { // Got a success response from server!
+              const json = JSON.parse(xhr.responseText);
+              const reviews = json;
+              callback(null, reviews);
             } else { // Oops!. Got an error from server.
               const error = (`Request failed. Returned status of ${xhr.status}`);
               callback(error, null);
@@ -230,6 +369,21 @@ class DBHelper {
     );
     return marker;
   }
+
+  static postReview(review) {
+    return fetch('http://localhost:1337/reviews/', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(review)
+    })
+      .then(res => res.json())
+      .catch(error => {
+        console.error(error)
+      })
+  }
 }
 
 
@@ -249,15 +403,20 @@ request.onsuccess = function (event) {
 
 // This event is only implemented in recent browsers   
 request.onupgradeneeded = function (event) {
+
   // Save the IDBDatabase interface 
   var db = event.target.result;
 
   // Create an objectStore for this database
-  var objectStore = db.createObjectStore("restaurants", { keyPath: "id" });
-
+  var objectStoreRestaurants = db.createObjectStore("restaurants", {
+    keyPath: "id", autoIncrement: true
+  });
+  var objectStoreReviews = db.createObjectStore("reviews", {
+    keyPath: "id", autoIncrement: true
+  });
   // Use transaction oncomplete to make sure the objectStore creation is 
   // finished before adding data into it.
-  objectStore.transaction.oncomplete = function (event) {
+  objectStoreRestaurants.transaction.addEventListener('complete', function (event) {
     // Store values in the newly created objectStore.
     DBHelper.fetchRestaurants((error, restaurants) => {
       if (error) {
@@ -269,5 +428,20 @@ request.onupgradeneeded = function (event) {
         });
       }
     });
-  };
+  });
+
+
+  objectStoreReviews.transaction.addEventListener('complete', function (event) {
+    // Store values in the newly created objectStore.
+    DBHelper.fetchReviews((error, reviews) => {
+      if (error) {
+        callback(error, null);
+      } else {
+        var reviewObjectStore = db.transaction("reviews", "readwrite").objectStore("reviews");
+        reviews.forEach(function (reviews) {
+          reviewObjectStore.add(reviews);
+        });
+      }
+    });
+  });
 };
