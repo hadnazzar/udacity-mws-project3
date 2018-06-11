@@ -132,8 +132,8 @@ class DBHelper {
                 .then(res => {
                   console.log(res)
                   DBHelper.changeReviewSuccessStatus(res)
-                  window.removeEventListener('online')
                 })
+              window.removeEventListener('online')
             });
           }
         };
